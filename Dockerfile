@@ -1,7 +1,9 @@
-
 # Use the official PHP image.
 # https://hub.docker.com/_/php
 FROM php:8.0-apache
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Configure PHP for Cloud Run.
 # Precompile PHP code with opcache.
@@ -21,8 +23,16 @@ RUN set -ex; \
     echo "opcache.memory_consumption = 32"; \
   } > "$PHP_INI_DIR/conf.d/cloud-run.ini"
 
-# Copy in custom code from the host machine.
+# Set the working directory
 WORKDIR /var/www/html
+
+# Copy composer files
+COPY composer.json composer.lock ./
+
+# Install dependencies for production
+RUN composer install --no-interaction --no-ansi --no-dev --optimize-autoloader
+
+# Copy the rest of the application code
 COPY . ./
 
 # Use the PORT environment variable in Apache configuration files.
